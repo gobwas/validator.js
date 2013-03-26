@@ -1,4 +1,3 @@
-
 (function(_) {
 
 	'use strict';
@@ -19,18 +18,22 @@
 		{
 			options = options || {};
 
-			var valid  = true;
 			var errors = [];
 
 			for (var rule in rules) {
 				if (this.rules.hasOwnProperty(rule)) {
 					if (this.rules[rule].call(this, value, rules[rule]) === false) {
-						errors.push(rule);
-						valid = false;
+
+						var error = {
+							value:    value,
+							rule:     rule,
+							standard: rules[rule]
+						};
+
+						errors.push(error);
 					}
 				} else {
 					console.warn("Not existing validation rule:", rule);
-					valid = false;
 				}
 			}
 
