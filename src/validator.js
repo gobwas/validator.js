@@ -43,7 +43,7 @@
 		rules: {
 			email: function(value, option)
 			{
-				var regexp = new RegExp("^[A-Z0-9._%-]+@[A-Z0-9.-]+((?<!\.)\.)[A-Z]{2,4}$", "i");
+				var regexp = new RegExp("^[a-z0-9._%-]+@[a-z0-9.-]*[a-z0-9]{1}\.[a-z]{2,4}$", "i");
 				return this.validators.preg(value, regexp) == option;
 			},
 
