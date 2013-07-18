@@ -1,41 +1,42 @@
 (function(_) {
 
-	'use strict';
+	"use strict";
 
 	var global = this;
 
 	var Validator = function(options)
 	{
-		var options = options || {};
+		options || (options = {});
 
 		if (options.rules) {
 			_.extend(this.rules, options.rules);
 		}
 	};
 
-	_.extend(Validator.prototype, {
+	Validator.prototype = {
 		validate: function(value, rules, options)
 		{
-			options = options || {};
+			options || (options = {});
 
-			var errors = [];
+			var self,
+                errors = [];
 
-			for (var rule in rules) {
-				if (this.rules.hasOwnProperty(rule)) {
-					if (this.rules[rule].call(this, value, rules[rule]) === false) {
+            _.each(rules, function(standard, rule) {
+                if (_.has(self.rules, rule)) {
+                    if (self.rules[rule].call(this, value, rules[rule]) === false) {
 
-						var error = {
-							value:    value,
-							rule:     rule,
-							standard: rules[rule]
-						};
+                        var error = {
+                            value:    value,
+                            rule:     rule,
+                            standard: rules[rule]
+                        };
 
-						errors.push(error);
-					}
-				} else {
-					console.warn("Not existing validation rule:", rule);
-				}
-			}
+                        errors.push(error);
+                    }
+                } else {
+                    console.warn("Validation rule '%s' is not exists", rule);
+                }
+            });
 
 			return errors;
 		},
@@ -98,8 +99,17 @@
 				return !!value === option;
 			}
 		}
-	});
+	};
 
-	global.Validator = Validator;
+    if ( typeof module === "object" && module && typeof module.exports === "object" ) {
+        module.exports = Validator;
+    } else {
+        if ( typeof define === "function" && define.amd ) {
+            define([], function () { return Validator; } );
+        } else {
+            global.Validator = Validator;
+        }
+    }
+
 
 }).call(this, _);
