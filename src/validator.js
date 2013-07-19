@@ -54,7 +54,7 @@
 				return this.validators.preg(value, regexp) == option;
 			},
 
-			preg: function(value, option)
+			regexp: function(value, option)
 			{
 				if (option instanceof RegExp &&  typeof value == 'string') {
 					return option.test(value);
