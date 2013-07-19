@@ -18,7 +18,7 @@
 		{
 			options || (options = {});
 
-			var self,
+			var self = this,
                 errors = [];
 
             _.each(rules, function(standard, rule) {
