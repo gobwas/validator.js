@@ -180,5 +180,117 @@
     })();
 
 
+
+    var JSONSchemaConverter = function() {
+
+    };
+
+    JSONSchemaConverter.prototype = (function() {
+        var RULES = {
+            STRING:      "string",
+            NUMBER:      "number",
+            INTEGER:     "integer",
+            BOOLEAN:     "boolean",
+            REGEXP:      "regexp",
+            MINIMUM:     "min",
+            MAXIMUM:     "max",
+            MIN_LENGTH:  "minlength",
+            MAX_LENGTH:  "maxlength",
+            REQUIRED:    "required",
+            ENUMERATION: "enum"
+        };
+
+        var SCHEMA_VALIDATIONS = {
+            TYPE:        "type",
+            MINIMUM:     "minimum",
+            MAXIMUM:     "maximum",
+            MIN_LENGTH:  "minLength",
+            MAX_LENGTH:  "maxLength",
+            REGEXP:      "pattern",
+            REQUIRED:    "required",
+            ENUMERATION: "enum"
+        };
+
+        var SCHEMA_TYPES = {
+            STRING:  "string",
+            NUMBER:  "number",
+            INTEGER: "integer",
+            BOOLEAN: "boolean"
+        };
+
+        var defaultProcessor = (function() {
+            var map = {};
+                map[SCHEMA_VALIDATIONS.MINIMUM]     = RULES.MINIMUM;
+                map[SCHEMA_VALIDATIONS.MAXIMUM]     = RULES.MAXIMUM;
+                map[SCHEMA_VALIDATIONS.MIN_LENGTH]  = RULES.MIN_LENGTH;
+                map[SCHEMA_VALIDATIONS.MAX_LENGTH]  = RULES.MAX_LENGTH;
+                map[SCHEMA_VALIDATIONS.REGEXP]      = RULES.REGEXP;
+                map[SCHEMA_VALIDATIONS.ENUMERATION] = RULES.ENUMERATION;
+
+            return function(value, rule) {
+                return {
+                    rule: map[rule],
+                    standard: value
+                };
+            };
+        })();
+
+        var processors = {};
+
+        processors[SCHEMA_VALIDATIONS.TYPE] = (function() {
+            var map = {};
+                map[SCHEMA_TYPES.STRING]  = RULES.STRING;
+                map[SCHEMA_TYPES.NUMBER]  = RULES.NUMBER;
+                map[SCHEMA_TYPES.INTEGER] = RULES.INTEGER;
+                map[SCHEMA_TYPES.BOOLEAN] = RULES.BOOLEAN;
+
+            return function(value) {
+                return {
+                    rule:     map[value],
+                    standard: true
+                };
+            };
+        })();
+
+        processors[SCHEMA_VALIDATIONS.MINIMUM]     = defaultProcessor;
+        processors[SCHEMA_VALIDATIONS.MAXIMUM]     = defaultProcessor;
+        processors[SCHEMA_VALIDATIONS.MIN_LENGTH]  = defaultProcessor;
+        processors[SCHEMA_VALIDATIONS.MAX_LENGTH]  = defaultProcessor;
+        processors[SCHEMA_VALIDATIONS.REGEXP]      = defaultProcessor;
+        processors[SCHEMA_VALIDATIONS.ENUMERATION] = defaultProcessor;
+
+        return {
+            constructor: JSONSchemaConverter,
+
+            convert: function(schema) {
+                if (schema) {
+                    var rules = {};
+
+                    _.each(schema.properties, function(validation, property) {
+                        rules[property] = _.reduce(validation, function(rules, standard, rule) {
+                            if (!processors[rule]) {
+                                return rules;
+                            }
+
+                            var processed = processors[rule].call(null, standard, rule);
+                            rules[processed.rule] = processed.standard;
+
+                            return rules;
+                        }, {});
+
+                        rules[property][RULES.REQUIRED] = _.indexOf(schema.required, property) !== -1;
+                    });
+
+                    return rules;
+                }
+
+                return null;
+            }
+        }
+    })();
+
+
+    Validator.convertSchema = (new JSONSchemaConverter).convert;
+
     return Validator;
 });
