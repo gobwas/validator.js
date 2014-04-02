@@ -1,0 +1,28 @@
+{
+  "name": "validator-js",
+  "version": "0.1.1",
+  "description": "Simple javascript validator",
+  "main": "src/validator.js",
+  "scripts": {
+    "test": "gulp test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gobwas/Validator.js.git"
+  },
+  "keywords": [
+    "validator",
+    "validate",
+    "schema",
+    "json"
+  ],
+  "author": "Sergey Kamardin <gobwas@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/gobwas/Validator.js/issues"
+  },
+  "homepage": "https://github.com/gobwas/Validator.js",
+  "dependencies": {
+    "underscore": "*"
+  }
+}

@@ -1,8 +1,23 @@
-(function(_) {
+(function(root, factory) {
+
+    // Detect the environment of usage
+    var isCJS = typeof module !== "undefined" && module.exports,
+        isAMD = typeof define === 'function' && typeof define.amd === 'object' && define.amd;
+
+    if (isCJS) {
+        var _ = require("underscore");
+        module.exports = factory(root, _);
+    } else if (isAMD) {
+        define(['underscore'], function(_) {
+            return factory(root, _);
+        });
+    } else {
+        root.Validator = factory(root, root._);
+    }
+
+})(this, function(global, _) {
 
     "use strict";
-
-    var global = this;
 
     var Validator = function(options)
     {
@@ -13,147 +28,157 @@
         }
     };
 
-    Validator.REQUIRED = 'required';
+    Validator.prototype = (function() {
 
-    Validator.prototype = {
-        constructor: Validator,
+        // Common value checker
+        var valueExists = function(value) {
+            return !(_.isUndefined(value) || _.isNull(value));
+        };
 
-        validate: function(value, rules, options)
-        {
-            options || (options = {});
+        return {
+            constructor: Validator,
 
-            var self = this,
-                errors = [];
+            validate: function(value, rules, options)
+            {
+                options || (options = {});
 
-            if (!(_.isNull(value) && _.has(rules, self.constructor.REQUIRED) && rules[self.constructor.REQUIRED] === false)) {
-                _.each(rules, function(standard, rule) {
-                    if (_.has(self.rules, rule)) {
-                        if (self.rules[rule].call(self, value, standard) === false) {
+                var self = this,
+                    valuesList = !_.isObject(value) ? {__single__: value} : value,
+                    rulesList  = !_.isObject(value) ? {__single__: rules} : rules,
+                    errorsList = {};
 
-                            var error = {
-                                value:    value,
-                                rule:     rule,
-                                standard: standard
-                            };
 
-                            errors.push(error);
+                _.each(rulesList, function(rules, field) {
+
+                    var errors = errorsList[field] = [],
+                        value  = _.result(valuesList, field),
+                        // We pass reporting, if value is null or undefined, and required rule is set to FALSE
+                        mustReport = !( valueExists(value) === false && _.has(rules, 'required') === true && _.result(rules, 'required') === false );
+
+                    mustReport && _.each(rules, function(standard, rule) {
+                        if (_.has(self.rules, rule)) {
+                            if (self.rules[rule].call(self, value, standard, valuesList) === false) {
+                                errors.push({
+                                    value:    value,
+                                    rule:     rule,
+                                    standard: standard
+                                });
+                            }
+
+                        } else {
+                            console && console.warn("Validation rule '%s' is not exists", rule);
                         }
-                    } else {
-                        console.warn("Validation rule '%s' is not exists", rule);
-                    }
+                    });
                 });
-            }
 
-            return errors;
-        },
 
-        rules: {
-            email: function(value, standard)
-            {
-                var regexp = new RegExp("^[a-z0-9._%-]+@[a-z0-9.-]*[a-z0-9]{1}\.[a-z]{2,4}$", "i");
-                return this.rules.regexp(value, regexp) == standard;
+                return !_.isObject(value) ? errorsList.__single__ : errorsList;
             },
 
-            russians: function(value, standard)
-            {
-                var regexp = /^[А-Яа-яёЁ\W]$/i;
-                return this.rules.regexp(value, regexp) == standard;
-            },
+            rules: {
+                email: function(value, standard)
+                {
+                    var regexp = new RegExp("^[a-z0-9._%-]+@[a-z0-9.-]*[a-z0-9]{1}\.[a-z]{2,4}$", "i");
+                    return this.rules.regexp(value, regexp) == standard;
+                },
 
-            string: function(value, standard)
-            {
-                var regexp = /^([^\"\\]*|\\(["\\\/bfnrt]{1}|u[a-f0-9]{4}))*$/;
+                russians: function(value, standard)
+                {
+                    var regexp = /^[А-Яа-яёЁ\W]$/i;
+                    return this.rules.regexp(value, regexp) == standard;
+                },
 
-                return typeof value == "string" && this.rules.regexp(value, regexp) == standard;
-            },
+                string: function(value, standard)
+                {
+                    var regexp = /^([^\"\\]*|\\(["\\\/bfnrt]{1}|u[a-f0-9]{4}))*$/;
 
-            number: function(value, standard)
-            {
-                var regexp = /-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/;
+                    return typeof value == "string" && this.rules.regexp(value, regexp) == standard;
+                },
 
-                return ( typeof value == "string" && this.rules.regexp(value, regexp) == standard ) || typeof value == "number";
-            },
+                boolean: function(value, standard)
+                {
+                    return typeof value == "boolean" && standard === true;
+                },
 
-            regexp: function(value, standard)
-            {
-                var regexp = standard instanceof RegExp ? standard : new RegExp(standard);
+                number: function(value, standard)
+                {
+                    var regexp = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
 
-                if (typeof value == 'string') {
-                    return regexp.test(value);
-                } else {
+                    return ( typeof value == "string" && this.rules.regexp(value, regexp) == standard ) || (typeof value == "number" && standard == true);
+                },
+
+                regexp: function(value, standard)
+                {
+                    var regexp = standard instanceof RegExp ? standard : new RegExp(standard);
+
+                    if (typeof value == 'string') {
+                        return regexp.test(value);
+                    } else {
+                        return false;
+                    }
+                },
+
+                "enum": function(value, standard)
+                {
+                    if (standard instanceof Array) {
+                        return _.indexOf(standard, value) != -1;
+                    } else {
+                        return false;
+                    }
+                },
+
+                min: function(value, standard)
+                {
+                    if (!this.rules.number.call(this, value, true)) {
+                        return false;
+                    }
+
+                    var number = parseInt(value, 10);
+
+                    return number >= standard;
+                },
+
+                max: function(value, standard)
+                {
+                    if (!this.rules.number.call(this, value, true)) {
+                        return false;
+                    }
+
+                    var number = parseInt(value, 10);
+
+                    return number <= standard;
+                },
+
+                minlength: function(value, standard)
+                {
+                    if (typeof value == 'string') {
+                        return value.length >= standard;
+                    }
+
                     return false;
-                }
-            },
+                },
 
-            enum: function(value, standard)
-            {
-                if (standard instanceof Array) {
-                    return standard.indexOf(value) != -1;
-                } else {
+                maxlength: function(value, standard)
+                {
+                    if (typeof value == 'string') {
+                        return value.length <= standard;
+                    }
+
                     return false;
+                },
+
+                required: function(value, standard)
+                {
+                    if (standard === true) {
+                        return valueExists(value);
+                    }
+
+                    return true;
                 }
-            },
-
-            min: function(value, standard)
-            {
-                if (typeof value == 'string') {
-                    return this.minlength(value, standard);
-                }
-
-                if (typeof value == 'number') {
-                    return value >= standard;
-                }
-
-                return false;
-            },
-
-            max: function(value, standard)
-            {
-                if (typeof value == 'string') {
-                    return this.maxlength(value, standard);
-                }
-
-                if (typeof value == 'number') {
-                    return value <= standard;
-                }
-
-                return false;
-            },
-
-            minlength: function(value, standard)
-            {
-                if (typeof value == 'string') {
-                    return value.length >= standard;
-                } else {
-                    return false;
-                }
-            },
-
-            maxlength: function(value, standard)
-            {
-                if (typeof value == 'string') {
-                    return value.length <= standard;
-                } else {
-                    return false;
-                }
-            },
-
-            required: function(value, standard)
-            {
-                return standard === true ? !!value === standard : true;
             }
         }
-    };
-
-    if ( typeof module === "object" && module && typeof module.exports === "object" ) {
-        module.exports = Validator;
-    } else {
-        if ( typeof define === "function" && define.amd ) {
-            define(function(){ return Validator; });
-        }
-
-        global.Validator = Validator;
-    }
+    })();
 
 
-}).call(this, _);
+    return Validator;
+});
