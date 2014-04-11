@@ -76,38 +76,43 @@
             },
 
             rules: {
-                email: function(value, standard)
+                "email": function(value, standard)
                 {
                     var regexp = new RegExp("^[a-z0-9._%-]+@[a-z0-9.-]*[a-z0-9]{1}\.[a-z]{2,4}$", "i");
                     return this.rules.regexp(value, regexp) == standard;
                 },
 
-                russians: function(value, standard)
+                "russians": function(value, standard)
                 {
                     var regexp = /^[А-Яа-яёЁ\W]$/i;
                     return this.rules.regexp(value, regexp) == standard;
                 },
 
-                string: function(value, standard)
+                "string": function(value, standard)
                 {
-                    var regexp = /^([^\"\\]*|\\(["\\\/bfnrt]{1}|u[a-f0-9]{4}))*$/;
+                    //var regexp = /^([^\"\\]*|\\(["\\\/bfnrt]{1}|u[a-f0-9]{4}))*$/;
 
-                    return typeof value == "string" && this.rules.regexp(value, regexp) == standard;
+                    return typeof value == "string";
                 },
 
-                boolean: function(value, standard)
+                "boolean": function(value, standard)
                 {
                     return typeof value == "boolean" && standard === true;
                 },
 
-                number: function(value, standard)
+                "number": function(value, standard)
                 {
-                    var regexp = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
+                    //var regexp = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/;
 
-                    return ( typeof value == "string" && this.rules.regexp(value, regexp) == standard ) || (typeof value == "number" && standard == true);
+                    return typeof value == "number" && standard == true;
                 },
 
-                regexp: function(value, standard)
+                "integer": function(value, standard)
+                {
+                    return typeof value == "number" && value % 1 == 0 && standard == true;
+                },
+
+                "regexp": function(value, standard)
                 {
                     var regexp = standard instanceof RegExp ? standard : new RegExp(standard);
 
@@ -127,7 +132,7 @@
                     }
                 },
 
-                min: function(value, standard)
+                "minimum": function(value, standard)
                 {
                     if (!this.rules.number.call(this, value, true)) {
                         return false;
@@ -138,7 +143,7 @@
                     return number >= standard;
                 },
 
-                max: function(value, standard)
+                "maximum": function(value, standard)
                 {
                     if (!this.rules.number.call(this, value, true)) {
                         return false;
@@ -149,7 +154,7 @@
                     return number <= standard;
                 },
 
-                minlength: function(value, standard)
+                "minlength": function(value, standard)
                 {
                     if (typeof value == 'string') {
                         return value.length >= standard;
@@ -158,7 +163,7 @@
                     return false;
                 },
 
-                maxlength: function(value, standard)
+                "maxlength": function(value, standard)
                 {
                     if (typeof value == 'string') {
                         return value.length <= standard;
@@ -167,7 +172,7 @@
                     return false;
                 },
 
-                required: function(value, standard)
+                "required": function(value, standard)
                 {
                     if (standard === true) {
                         return valueExists(value);
@@ -192,8 +197,8 @@
             INTEGER:     "integer",
             BOOLEAN:     "boolean",
             REGEXP:      "regexp",
-            MINIMUM:     "min",
-            MAXIMUM:     "max",
+            MINIMUM:     "minimum",
+            MAXIMUM:     "maximum",
             MIN_LENGTH:  "minlength",
             MAX_LENGTH:  "maxlength",
             REQUIRED:    "required",
