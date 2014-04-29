@@ -49,7 +49,6 @@
 
 
                 _.each(rulesList, function(rules, field) {
-
                     var errors = errorsList[field] = [],
                         value  = _.result(valuesList, field),
                         // We pass reporting, if value is null or undefined, and required rule is set to FALSE
